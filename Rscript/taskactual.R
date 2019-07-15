@@ -9,6 +9,22 @@ rm(current_path)
 products <- read_csv("datasets/existingproductattributes2017.csv")
 newproducts <- read_csv("datasets/newproductattributes2017.csv")
 ####Visualizations####
+
+plotprod <- products[, c(3:11, 13:18)]
+View(plotprod)
+
+for (i in names(plotprod[, -which(names(plotprod) == "Volume")])) {
+  print(ggplot(data = plotprod, 
+               aes_string(x=i, y = plotprod$Volume)) 
+                 + geom_jitter(color = "darkred")
+                   + ylab("Volume")
+        )
+}
+
+names(plotprod)
+
+sum(is.na(plotprod))
+
 ####Data preprocessing####
 #Check duplicated rows
 #Check NA
