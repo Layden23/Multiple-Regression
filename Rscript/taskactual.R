@@ -66,6 +66,12 @@ sum(is.na(plotprod))
 #Check duplicated rows
 #Check NA
 #Check outliers
+
+boxplot(products$Volume)
+#Dummiffying the data
+newDataFrame <- dummyVars(" ~ .", data = products)
+
+products <- data.frame(predict(newDataFrame, newdata = products))
 #Correlation Matrix
 #Check for colinearity
 #Check abnormalities (x5StarsReview had perfect correlation)
