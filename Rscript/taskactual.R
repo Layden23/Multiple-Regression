@@ -16,9 +16,9 @@ View(plotprod)
 for (i in names(plotprod[, -which(names(plotprod) == "Volume")])) {
   print(ggplot(data = plotprod, 
                aes_string(x=i, y = plotprod$Volume)) 
-                 + geom_jitter(color = "darkred")
-                   + ylab("Volume")
-        )
+        + geom_jitter(color = "darkred")
+        + ylab("Volume")
+  )
 }
 
 names(plotprod)
@@ -53,9 +53,9 @@ View(plotprod)
 for (i in names(plotprod[, -which(names(plotprod) == "Volume")])) {
   print(ggplot(data = plotprod, 
                aes_string(x=i, y = plotprod$Volume)) 
-                 + geom_jitter(color = "darkred")
-                   + ylab("Volume")
-        )
+        + geom_jitter(color = "darkred")
+        + ylab("Volume")
+  )
 }
 
 names(plotprod)
@@ -83,4 +83,3 @@ products <- data.frame(predict(newDataFrame, newdata = products))
 ####Modeling####
 ##Try different models
 ##Try different features
-
