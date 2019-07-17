@@ -1,5 +1,5 @@
 ####Import datasets####
-pacman::p_load(readr,rstudioapi,ggplot2,cowplot,GGally,caret,dplyr)
+pacman::p_load(readr,rstudioapi,ggplot2,cowplot,GGally,caret,dplyr,party)
 
 current_path = getActiveDocumentContext()$path
 setwd(dirname(current_path))
@@ -91,6 +91,23 @@ products$"Avg_WghtStar" <-  summary(lm_model)$coefficients[2]*products$x4StarRev
   summary(lm_model)$coefficients[3]*products$x3StarReviews + 
   summary(lm_model)$coefficients[4]*products$x2StarReviews + 
   summary(lm_model)$coefficients[5]*products$x1StarReviews
+# decision tree
+
+avg_decisiontree <- ctree(Volume~.,data = 
+                        products[,-which(colnames(products) %in% c("x5StarReviews",
+                                                                   "x4StarReviews",
+                                                                   "x3StarReviews",
+                                                                   "x2StarReviews",
+                                                                   "x1StarReviews"))], 
+                      controls = ctree_control(maxdepth = 5))
+plot(avg_decisiontree)
+decisiontree <- ctree(Volume~.,data = 
+                        products[,-which(colnames(products) %in% c("x5StarReviews",
+                                                                   "Avg_WeghtStar","x3StarReviews",
+                                                                   "x1StarReviews"))], 
+                      controls = ctree_control(maxdepth = 5))
+plot(decisiontree)
+
 ##Remove "bad" features (features that are strongly correlated (regression))
 ##We'll do that when training
 ####Modeling####
@@ -99,7 +116,7 @@ indexing <- createDataPartition(products$Volume, p = 0.75, list = F)
 trainSet <- products[indexing,]
 testSet <- products[-indexing,]
 
-form <- c("Volume ~ x4StarReviews + x2StarReviews + PositiveServiceReview",
+form <- c("Volume ~ x4StarReviews + PositiveServiceReview",
              "Volume ~ Avg_WghtStar + PositiveServiceReview")
 models <- c("gbm", "rf","knn", "svmLinear", "svmRadial","glm")
 combined <- c()
@@ -126,8 +143,8 @@ colnames(re_errors) <-cnames
 
 
 ####PCA####
-preprocessparams <- preProcess(x = products[-which(colnames(products)==
-                                                     c("Volume","Avg_WghtStar"))],
+preprocessparams <- preProcess(x = products[-which(colnames(products)==c("Volume")
+                                                     )],
                                method = c("center","scale","pca"))
 
 pca_trainSet <- predict(preprocessparams, 
@@ -138,18 +155,15 @@ pca_testSet <- predict(preprocessparams,
 ctrl <- trainControl(method = "repeatedcv", 
                      repeats = 3)
 
-form <- c("Volume ~ x4StarReviews + x2StarReviews + PositiveServiceReview",
-          "Volume ~ AvgWght_Star + PositiveServiceReview")
 models <- c("rf","knn", "svmLinear", "svmRadial","glm","gbm")
 
-for (i in form){
-  for (j in models){
-    model <- train(Volume~., data = pca_trainSet, method = i, tuneLength = 2)
-    predictions <- predict(model, pca_testSet)
-    results <- postResample(predictions, pca_testSet$Volume)
-    pca_combined <- cbind(results, pca_combined)
+for (i in models){
+    pca_model <- train(Volume~., data = pca_trainSet, method = i, tuneLength = 2)
+    pca_predictions <- predict(pca_model, pca_testSet)
+    pca_results <- postResample(pca_predictions, pca_testSet$Volume)
+    pca_combined <- cbind(pca_results, pca_combined)
   }
-}
+
 
 #Full PCA
 pca_combined <- c()
@@ -164,14 +178,3 @@ for (i in models) {
   pca_combined <- cbind(results, pca_combined)
 }
 colnames(pca_combined) <- models
-#PCA with 6 components
-pca6_combined <- c()
-for (i in models) {
-  pca6_model <- train(Volume~., data = pca_trainSet[,which(
-    colnames(pca_trainSet) %in% c("Volume","PC1","PC2","PC3","PC4","PC5","PC6"))],
-    method = i, tuneLength = 2)
-  predictions <- predict(pca6_model, pca_testSet)
-  results <- postResample(predictions, pca_testSet$Volume)
-  pca6_combined <- cbind(results, pca6_combined)
-}
-colnames(pca6_combined) <- models
