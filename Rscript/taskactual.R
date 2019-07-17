@@ -67,7 +67,13 @@ sum(is.na(plotprod))
 #Check duplicated rows
 sum(duplicated(products[,-which(names(products) %in% c("ProductNum","Price"))]))
 #6 rows from the extended warranty are duplicated, so we'll remove them
-products <- products[-c(35:41),]
+for (i in c(1:ncol(products))){
+  a <- any(is.na(products[,i]))
+    if (a == T) {
+      products[-i]
+      
+    }
+}
 #Check NA
 any(is.na(products))
 summary(products)
@@ -75,7 +81,7 @@ summary(products)
 #There are 15 missing values in Best Sellers Rank attribute, so we'll remove it.
 products <- products[,-which(names(products) %in% "BestSellersRank")]
 #Check outliers
-boxplot(products$Volume)
+boxplot(products$Volume)$out
 #Cleaning outliers
 products <- filter(products, 
                    products$Volume < 7000)
