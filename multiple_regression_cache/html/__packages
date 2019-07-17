@@ -1,0 +1,17 @@
+base
+knitr
+rmdformats
+readr
+rstudioapi
+ggplot2
+cowplot
+GGally
+lattice
+caret
+dplyr
+mvtnorm
+modeltools
+zoo
+sandwich
+strucchange
+party

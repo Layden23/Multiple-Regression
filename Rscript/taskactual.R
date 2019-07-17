@@ -8,6 +8,7 @@ rm(current_path)
 
 products <- read_csv("datasets/existingproductattributes2017.csv")
 newproducts <- read_csv("datasets/newproductattributes2017.csv")
+set.seed(619)
 ####Visualizations####
 
 plotprod <- products[, c(3:11, 13:18)]
@@ -74,7 +75,7 @@ summary(products)
 #There are 15 missing values in Best Sellers Rank attribute, so we'll remove it.
 products <- products[,-which(names(products) %in% "BestSellersRank")]
 #Check outliers
-boxplot(products$Volume)$out
+boxplot(products$Volume)
 #Cleaning outliers
 products <- filter(products, 
                    products$Volume < 7000)
@@ -88,21 +89,11 @@ products <- filter(products,
 #}
 #boxplot(products$Volume)
 #boxplot(products$x3StarReviews)
-
-newDataFrame <- dummyVars(" ~ .", data = products)
-
-products <- data.frame(predict(newDataFrame, newdata = products))
+ProductType <- as.vector(products$ProductType)
+products <- products[,-which(colnames(products) %in% "ProductType")]
 #Correlation Matrix
 
 
-#We just keep those related to PC,Laptop,Smartphone and Netbook.
-existing_products <- products[,-which(names(products) %in% c("ProductTypeAccessories",
-                                                             "ProductTypeDisplay",
-                                                             "ProductTypeDisplay",
-                                                             "ProductTypeExtendedWarranty",
-                                          "ProductTypeGameConsole","ProductTypePrinter",
-                                          "ProductTypePrinterSupplies",
-                                          "ProductTypeSoftware", "ProductTypeTablet"))]
 #We look the correlation matrix again:
 #Check for colinearity
 corr_products <- cor(products)
@@ -150,13 +141,13 @@ avg_decisiontree <- ctree(Volume~.,data =
                                                                    "x3StarReviews",
                                                                    "x2StarReviews",
                                                                    "x1StarReviews"))], 
-                      controls = ctree_control(maxdepth = 5))
+                      controls = ctree_control(maxdepth = 3))
 plot(avg_decisiontree)
 decisiontree <- ctree(Volume~.,data = 
                         products[,-which(colnames(products) %in% c("x5StarReviews",
-                                                                   "Avg_WeghtStar","x3StarReviews",
+                                                                   "Avg_WghtStar","x3StarReviews",
                                                                    "x1StarReviews"))], 
-                      controls = ctree_control(maxdepth = 5))
+                      controls = ctree_control(maxdepth = 3))
 plot(decisiontree)
 
 ##Remove "bad" features (features that are strongly correlated (regression))
@@ -172,29 +163,20 @@ form <- c("Volume ~ x4StarReviews + PositiveServiceReview",
 models <- c("gbm", "rf","knn", "svmLinear", "svmRadial","glm")
 combined <- c()
 cnames <- vector()
-ae_errors <- c()
-re_errors <- c()
-
 for (i in form){
   for (j in models) {
-    model <- train(formula(i), data = trainSet, method = j)
+    model <- train(formula(i), data = trainSet, method = j, tuneLength = 3, metric = "MAE")
     predictions <- predict(model, testSet)
     results <- postResample(predictions, testSet$Volume)
     combined <- cbind(results, combined)
     cnames <- c(paste(i,j),cnames)
-    ae <- abs(predictions - testSet$Volume)
-    re <- ae/testSet$Volume
-    ae_errors <- cbind(ae,ae_errors)
-    re_errors <- cbind(re,re_errors)
   }
 }
 colnames(combined) <-cnames
-colnames(ae_errors) <-cnames
-colnames(re_errors) <-cnames
-
 
 ####PCA####
-preprocessparams <- preProcess(x = products[-which(colnames(products)==c("Volume")
+pca_products <- products[,-which(colnames(products) == "Avg_WghtStar")]
+preprocessparams <- preProcess(x = pca_products[-which(colnames(products)=="Volume"
                                                      )],
                                method = c("center","scale","pca"))
 
@@ -208,27 +190,50 @@ ctrl <- trainControl(method = "repeatedcv",
 
 models <- c("rf","knn", "svmLinear", "svmRadial","glm","gbm")
 
+pca_combined <- c()
+
 for (i in models){
-    pca_model <- train(Volume~., data = pca_trainSet, method = i, tuneLength = 2)
+    pca_model <- train(Volume~., data = pca_trainSet, method = i, 
+                       tuneLength = 2, metric = "MAE")
     pca_predictions <- predict(pca_model, pca_testSet)
     pca_results <- postResample(pca_predictions, pca_testSet$Volume)
     pca_combined <- cbind(pca_results, pca_combined)
-  }
-
-
-#Full PCA
-pca_combined <- c()
-cnames2 <- vector()
-
-  
-for (i in models) {
-  pca_model <- train(Volume~., data = pca_trainSet[,-which(
-    colnames(pca_trainSet) %in% "Avg_WghtStar")], method = i, tuneLength = 2)
-  predictions <- predict(pca_model, pca_testSet)
-  results <- postResample(predictions, pca_testSet$Volume)
-  pca_combined <- cbind(results, pca_combined)
 }
+
 colnames(pca_combined) <- models
+
+####RF ####
+rf_model <- train(Volume~Avg_WghtStar + PositiveServiceReview, trainSet, 
+                  method = "svmLinear",
+                  tuneLength = 2, metric = "MAE",preProcess = c("center","scale"))
+
+rf_pred <- predict(rf_model, products)
+
+postResample(rf_pred, products$Volume)
+
+
+products$Volume[products$Volume == 0] <- 1
+rfae_errors <- abs(rf_pred - products$Volume)
+rfre_errors <- rfae_errors/products$Volume
+mean(rfre_errors)
+rferrors <- cbind(rfae_errors,rfre_errors)
+rferrors <- as.data.frame(rferrors)
+rferrors$Volume <- products$Volume
+rferrors$ProductNum <- products$ProductNum
+rferrors$ProductType <- ProductType
+rferrors <- filter(rferrors, ProductType == "Laptop"|ProductType == "PC" |
+                     ProductType == "Netbook" |ProductType == "Smartphone")
+ggplot(rferrors, aes(x = Volume, y = rfre_errors, color = ProductType)) + geom_jitter()
+ggplot(rferrors, aes(x = Volume, y = rfae_errors)) + geom_jitter()
+
+####Predict####
+#Create avg_weighted_star
+newproducts$"Avg_WghtStar" <-  summary(lm_model)$coefficients[2]*newproducts$x4StarReviews + 
+  summary(lm_model)$coefficients[3]*newproducts$x3StarReviews + 
+  summary(lm_model)$coefficients[4]*newproducts$x2StarReviews + 
+  summary(lm_model)$coefficients[5]*newproducts$x1StarReviews
+newproducts$Volume <- predict(rf_model, newproducts)
+
 
 ##Try different models
 ##Try different features
