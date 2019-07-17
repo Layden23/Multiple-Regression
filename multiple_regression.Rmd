@@ -11,6 +11,8 @@ output:
     smooth_scroll: false
     thumbnails: true
     lightbox: true
+    
+
 ---
 
 
