@@ -84,6 +84,14 @@ for (i in names(plotprod[, -which(names(plotprod) == "Volume")])) {
 }
 ```
 
+
+We can infer the following already from the visual exploration of the dataset:
+
+i) x5StarReviews has a suspiciously strong positive correlation with Volume;
+ii) x4StarReviews has a very strong positive correlation with Volume;
+iii) all StarReviews are positively correlated with Volume, even 1 and 2 starreviews, which are generally considered as expressions of negative customer sentiment. This observation suggests that it is the number of reviews rather than the quality of the same that is related to Volume.
+iv) Attributes relating to physical or financial aspects of the products are largely irrelevant for the purposes of inferential statistics.
+
 ## Data preprocessing
 ```{r duplicates}
 #Check duplicated rows
