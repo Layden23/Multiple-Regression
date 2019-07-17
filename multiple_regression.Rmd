@@ -107,11 +107,14 @@ boxplot(products$Volume)
 products <- filter(products, 
                    products$Volume < 7000)
 ```
+We an observe that there are missing values in the "BestSellerRank" column. As we cannot predict or obtain the value of this column based on the other features.
+We are also removing the two biggest outliers that make the biggest impact, corresponding to the volumes of 11204 and 7036. 
+
 ```{r anova test}
 anova_test <- aov(Volume ~ ProductType, data = products)
 summary(anova_test)
 ```
-The PValue is too big, so our categorical variables have no relation between the dependent variable.
+The PValue is too big, so our categorical variables have no relation between the dependent variable (Volume). This means we are not considering the ProductType for our model but we will store it as a vector for later uses (plots).
 ## Feature Selection
 ```{r}
 ProductType <- as.vector(products$ProductType)
@@ -124,7 +127,7 @@ findCorrelation(x = corr_products, cutoff = 0.80, names = T)
 
 pairwiseCor <- function(dataframe){
   pairs <- combn(names(dataframe), 2, simplify=FALSE)
-  df <- data.frame(Vairable1=rep(0,length(pairs)), Variable2=rep(0,length(pairs)),
+  df <- data.frame(Variable1=rep(0,length(pairs)), Variable2=rep(0,length(pairs)),
                    AbsCor=rep(0,length(pairs)), Cor=rep(0,length(pairs)))
   for(i in 1:length(pairs)){
     df[i,1] <- pairs[[i]][1]
@@ -139,7 +142,8 @@ pairwiseCor <- function(dataframe){
   pairwiseCorDF
 }
 #x5StarReviews has perfect correlation, and we'll remove it. There's also colinearity between x4StarReviews and x3StarReviews, so we'll remove x3StarReviews. We do the same for x2StarReviews and x1StarReviews.
-pairwiseCor(products)
+pairw <- (pairwiseCor(products))
+kable(pairw[which(pairw$Variable2 == "Volume"),])
 ```
 
 ```{r}
@@ -158,6 +162,11 @@ products$"Avg_WghtStar" <-  summary(lm_model)$coefficients[2]*products$x4StarRev
   summary(lm_model)$coefficients[4]*products$x2StarReviews + 
   summary(lm_model)$coefficients[5]*products$x1StarReviews
 ```
+```{r}
+pairw_avg <- (pairwiseCor(products))
+kable(pairw_avg[which(pairw_avg$Variable1 == "Volume"),])
+```
+
 ```{r}
 #Decision Tree
 avg_decisiontree <- ctree(Volume~.,data = 
