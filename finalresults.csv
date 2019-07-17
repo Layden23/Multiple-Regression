@@ -1,0 +1,14 @@
+﻿ProductType;ProductNum;Brand;Volume
+PC;171;Dell;217
+PC;172;Dell;104
+Laptop;173;Apple;177
+Laptop;175;Toshiba;54
+Laptop;176;Razer;19
+Netbook;178;HP;62
+Netbook;180;Acer;1191
+Netbook;181;Asus;159
+Netbook;183;Samsung;43
+Smartphone;193;Motorola;261
+Smartphone;194;Samsung;899
+Smartphone;195;HTC;84
+Smartphone;196;Motorola;95

@@ -2,13 +2,23 @@
 title: "Multiple Regression in R"
 author: "Elias Smouni, Joël Ribera Zaragoza"
 date: "`r Sys.Date()`"
-output: pdf_document
+output:
+  pdf_document:
+    df_print: kable
+    toc: true
+    number_sections: false
 ---
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
+## Load packages and datasets
 
+```{r load packages}
+pacman::p_load(readr,readxl,rstudioapi,ggplot2,cowplot,GGally,caret,dplyr,party)
+products <- read_csv("datasets/existingproductattributes2017.csv")
+newproducts <- read_csv("datasets/newproductattributes2017.csv")
+```
 
 ## Executive Summary
 ### Introduction
@@ -41,16 +51,22 @@ We began by analyzing the influence of the attribute “ProductType” on predic
 
 This task was a so-called multiple-regression task. We trained the number of supervised-learning algorithms and received the best results with a decision-tree algorithm called Random Forest. Our training yielded a model that inferred the volume from the data with a 92% accuracy.
 
+### Prediction
 
+The projected sales volumes for the product types are presented in the following table.
 
-
-## Load packages and datasets
-
-```{r load packages}
-pacman::p_load(readr,rstudioapi,ggplot2,cowplot,GGally,caret,dplyr,party)
-products <- read_csv("datasets/existingproductattributes2017.csv")
-newproducts <- read_csv("datasets/newproductattributes2017.csv")
+```{r, echo = FALSE}
+finalresults <- read_excel("finalresults2.xls")
+finalresults
 ```
+
+
+###	Discussion
+
+As the data and available algorithms were the same as last time and so were the algorithms available to us, there was no material difference nor material knowledge gains achieved by this exercise. The central take-away is that, in relation to this dataset, product type carries little weight in predicting sales.
+
+
+
 ## Visualization and data exploration:
 ```{r visualization}
 plotprod <- products[, c(3:11, 13:18)]
@@ -95,6 +111,7 @@ boxplot(products$Volume)
 products <- filter(products, 
                    products$Volume < 7000)
 ```
+
 We an observe that there are missing values in the "BestSellerRank" column. As we cannot predict or obtain the value of this column based on the other features.
 We are also removing the two biggest outliers that make the biggest impact, corresponding to the volumes of 11204 and 7036. 
 
@@ -102,7 +119,9 @@ We are also removing the two biggest outliers that make the biggest impact, corr
 anova_test <- aov(Volume ~ ProductType, data = products)
 summary(anova_test)
 ```
+
 The PValue is too big, so our categorical variables have no relation between the dependent variable (Volume). This means we are not considering the ProductType for our model but we will store it as a vector for later uses (plots).
+
 ## Feature Selection
 ```{r}
 ProductType <- as.vector(products$ProductType)
@@ -133,16 +152,20 @@ pairwiseCor <- function(dataframe){
 pairw <- (pairwiseCor(products))
 pairw[which(pairw$Variable2 == "Volume"),]
 ```
+
 Here we can observe that the reviews are highly correlated with each other. To sum up, we are removing the x3StarReviews and the x1StarReviews, as they are highly correlated to x4StarReviews and x2StarReviews respectively. Furthermore, we will plot a decision tree to see the variables that have the biggest impact.
+
 ```{r}
 decisiontree <- ctree(Volume~.,data = 
                         products[,-which(colnames(products) %in% c("x5StarReviews","x3StarReviews", "x1StarReviews"))], 
                       controls = ctree_control(maxdepth = 3))
 plot(decisiontree)
 ```
+
 We can observe that the variables that have the biggest impact are x4StarReviews and PositiveServiceReview, which are also the ones that have the highest correlation.
 
 Here we create a new variable with the StarReviews. We will do this by using a linear regression and we'll create an "average weighted star review" based on the coefficients of the regression model and its respectively variable.
+
 ```{r}
 lm_model <- train(Volume~x4StarReviews + x3StarReviews + x2StarReviews + x1StarReviews,
                   products, method = "lm")
@@ -161,6 +184,7 @@ pairw_avg[which(pairw_avg$Variable1 == "x4StarReviews" &
 ```
 
 Here we can observe that the new variable has better correlation than x4StarReviews, which was the one with the highest relationship with volume.
+
 ```{r}
 #Decision Tree
 avg_decisiontree <- ctree(Volume~.,data = 
@@ -174,7 +198,9 @@ plot(avg_decisiontree)
 ```
 
 ## Modeling
+
 We create a loop to train several features with several models.
+
 ```{r models}
  #Cross validation:
 set.seed(69)
@@ -247,5 +273,7 @@ finalresults$Volume <- round(finalresults$Volume,0)
 finalresults$Volume <- as.integer(finalresults$Volume)
 finalresults
 ```
+
+
 
 
